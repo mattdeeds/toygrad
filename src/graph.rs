@@ -10,9 +10,7 @@ pub struct GraphNode {
 impl GraphNode {
     /// Create a leaf node (input/parameter with no parents)
     pub fn leaf() -> Arc<Self> {
-        Arc::new(Self {
-            backward_fn: None,
-        })
+        Arc::new(Self { backward_fn: None })
     }
 
     /// Create a node for an operation with a backward function

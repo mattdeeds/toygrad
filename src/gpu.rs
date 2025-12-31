@@ -33,6 +33,12 @@ pub struct PipelineCache {
     // Transpose
     pub transpose_layout: wgpu::BindGroupLayout,
     pub transpose_pipeline: wgpu::ComputePipeline,
+
+    // Optimizer operations
+    pub optimizer_layout: wgpu::BindGroupLayout,
+    pub sgd_pipeline: wgpu::ComputePipeline,
+    pub adam_layout: wgpu::BindGroupLayout,
+    pub adam_pipeline: wgpu::ComputePipeline,
 }
 
 impl PipelineCache {
@@ -43,17 +49,23 @@ impl PipelineCache {
             source: wgpu::ShaderSource::Wgsl(include_str!("ops/elementwise.wgsl").into()),
         });
 
-        let elementwise_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Elementwise Bind Group Layout"),
-            entries: &[
-                buffer_entry(0, true),   // input a
-                buffer_entry(1, true),   // input b
-                buffer_entry(2, false),  // output
-                uniform_entry(3),        // op_type
-            ],
-        });
+        let elementwise_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Elementwise Bind Group Layout"),
+                entries: &[
+                    buffer_entry(0, true),  // input a
+                    buffer_entry(1, true),  // input b
+                    buffer_entry(2, false), // output
+                    uniform_entry(3),       // op_type
+                ],
+            });
 
-        let elementwise_pipeline = create_pipeline(device, &elementwise_shader, &elementwise_layout, "elementwise");
+        let elementwise_pipeline = create_pipeline(
+            device,
+            &elementwise_shader,
+            &elementwise_layout,
+            "elementwise",
+        );
 
         // === Broadcast pipeline ===
         let broadcast_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -71,18 +83,20 @@ impl PipelineCache {
             ],
         });
 
-        let broadcast_pipeline = create_pipeline(device, &broadcast_shader, &broadcast_layout, "broadcast_op");
+        let broadcast_pipeline =
+            create_pipeline(device, &broadcast_shader, &broadcast_layout, "broadcast_op");
 
         // === Negate pipeline ===
         let negate_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Negate Bind Group Layout"),
             entries: &[
-                buffer_entry(0, true),   // input
-                buffer_entry(1, false),  // output
+                buffer_entry(0, true),  // input
+                buffer_entry(1, false), // output
             ],
         });
 
-        let negate_pipeline = create_pipeline(device, &elementwise_shader, &negate_layout, "negate");
+        let negate_pipeline =
+            create_pipeline(device, &elementwise_shader, &negate_layout, "negate");
 
         // === Matmul pipeline ===
         let matmul_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -93,9 +107,9 @@ impl PipelineCache {
         let matmul_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Matmul Bind Group Layout"),
             entries: &[
-                buffer_entry(0, true),   // input a
-                buffer_entry(1, true),   // input b
-                buffer_entry(2, false),  // output
+                buffer_entry(0, true),     // input a
+                buffer_entry(1, true),     // input b
+                buffer_entry(2, false),    // output
                 uniform_entry_size(3, 16), // dims (M, K, N, padding)
             ],
         });
@@ -111,14 +125,20 @@ impl PipelineCache {
         let activation_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Activation Bind Group Layout"),
             entries: &[
-                buffer_entry(0, true),   // input
-                buffer_entry(1, false),  // output
+                buffer_entry(0, true),  // input
+                buffer_entry(1, false), // output
             ],
         });
 
         let relu_pipeline = create_pipeline(device, &activation_shader, &activation_layout, "relu");
-        let sigmoid_pipeline = create_pipeline(device, &activation_shader, &activation_layout, "sigmoid");
-        let tanh_pipeline = create_pipeline(device, &activation_shader, &activation_layout, "tanh_activation");
+        let sigmoid_pipeline =
+            create_pipeline(device, &activation_shader, &activation_layout, "sigmoid");
+        let tanh_pipeline = create_pipeline(
+            device,
+            &activation_shader,
+            &activation_layout,
+            "tanh_activation",
+        );
 
         // === Reduce pipeline ===
         let reduce_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -129,12 +149,13 @@ impl PipelineCache {
         let reduce_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Reduce Bind Group Layout"),
             entries: &[
-                buffer_entry(0, true),   // input
-                buffer_entry(1, false),  // output
+                buffer_entry(0, true),  // input
+                buffer_entry(1, false), // output
             ],
         });
 
-        let sum_reduce_pipeline = create_pipeline(device, &reduce_shader, &reduce_layout, "sum_reduce");
+        let sum_reduce_pipeline =
+            create_pipeline(device, &reduce_shader, &reduce_layout, "sum_reduce");
 
         // === Transpose pipeline ===
         let transpose_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -145,13 +166,47 @@ impl PipelineCache {
         let transpose_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Transpose Bind Group Layout"),
             entries: &[
-                buffer_entry(0, true),   // input
-                buffer_entry(1, false),  // output
+                buffer_entry(0, true),    // input
+                buffer_entry(1, false),   // output
                 uniform_entry_size(2, 8), // dims (rows, cols)
             ],
         });
 
-        let transpose_pipeline = create_pipeline(device, &transpose_shader, &transpose_layout, "transpose");
+        let transpose_pipeline =
+            create_pipeline(device, &transpose_shader, &transpose_layout, "transpose");
+
+        // === Optimizer pipelines ===
+        let optimizer_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Optimizer Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("ops/optimizer.wgsl").into()),
+        });
+
+        // SGD layout: param (read_write), grad (read), params (uniform)
+        let optimizer_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("SGD Bind Group Layout"),
+            entries: &[
+                buffer_entry(0, false),    // param (read_write)
+                buffer_entry(1, true),     // grad (read)
+                uniform_entry_size(2, 32), // OptimizerParams struct (32 bytes)
+            ],
+        });
+
+        let sgd_pipeline =
+            create_pipeline(device, &optimizer_shader, &optimizer_layout, "sgd_step");
+
+        // Adam layout: param, grad, params, m (first moment), v (second moment)
+        let adam_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Adam Bind Group Layout"),
+            entries: &[
+                buffer_entry(0, false),    // param (read_write)
+                buffer_entry(1, true),     // grad (read)
+                uniform_entry_size(2, 32), // OptimizerParams struct
+                buffer_entry(3, false),    // m (first moment, read_write)
+                buffer_entry(4, false),    // v (second moment, read_write)
+            ],
+        });
+
+        let adam_pipeline = create_pipeline(device, &optimizer_shader, &adam_layout, "adam_step");
 
         Self {
             elementwise_layout,
@@ -170,6 +225,10 @@ impl PipelineCache {
             sum_reduce_pipeline,
             transpose_layout,
             transpose_pipeline,
+            optimizer_layout,
+            sgd_pipeline,
+            adam_layout,
+            adam_pipeline,
         }
     }
 }
@@ -255,16 +314,14 @@ impl GpuContext {
             .expect("Failed to create adapter");
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: Some("Toygrad Device"),
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::downlevel_defaults(),
-                    experimental_features: wgpu::ExperimentalFeatures::disabled(),
-                    memory_hints: wgpu::MemoryHints::MemoryUsage,
-                    trace: wgpu::Trace::Off,
-                },
-            )
+            .request_device(&wgpu::DeviceDescriptor {
+                label: Some("Toygrad Device"),
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits::downlevel_defaults(),
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
+                memory_hints: wgpu::MemoryHints::MemoryUsage,
+                trace: wgpu::Trace::Off,
+            })
             .await
             .expect("Failed to create device");
 

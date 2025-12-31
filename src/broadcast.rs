@@ -78,7 +78,11 @@ impl BroadcastInfo {
 
     /// Get dimensions that need reduction for backward pass
     /// Returns (dims to reduce for A, dims to reduce for B)
-    pub fn get_reduction_dims(&self, original_shape_a: &[usize], original_shape_b: &[usize]) -> (Vec<usize>, Vec<usize>) {
+    pub fn get_reduction_dims(
+        &self,
+        original_shape_a: &[usize],
+        original_shape_b: &[usize],
+    ) -> (Vec<usize>, Vec<usize>) {
         let ndim_a = original_shape_a.len();
         let ndim_b = original_shape_b.len();
         let max_ndim = self.output_shape.len();
@@ -87,7 +91,12 @@ impl BroadcastInfo {
         let mut reduce_dims_b = Vec::new();
 
         // For dimensions that were broadcast (size 1 became size N), we need to sum gradients
-        for (i, (&broadcast_a, &broadcast_b)) in self.a_broadcast_dims.iter().zip(&self.b_broadcast_dims).enumerate() {
+        for (i, (&broadcast_a, &broadcast_b)) in self
+            .a_broadcast_dims
+            .iter()
+            .zip(&self.b_broadcast_dims)
+            .enumerate()
+        {
             if broadcast_a {
                 reduce_dims_a.push(i);
             }

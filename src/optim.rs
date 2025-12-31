@@ -1,6 +1,7 @@
 use crate::tensor::Tensor;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use wgpu::util::DeviceExt;
 
 /// Stochastic Gradient Descent optimizer
 pub struct SGD {
@@ -16,20 +17,107 @@ impl SGD {
 
     /// Perform one optimization step on a parameter
     /// Updates the parameter in-place: param = param - lr * grad
+    /// This version uses GPU compute shader for maximum performance
     pub fn step(&self, param: &mut Tensor) {
         if let Some(grad) = param.get_grad() {
-            // Get current parameter data
-            let param_data = param.to_vec();
+            let size = param.size();
+
+            // Get gradient data and upload to GPU buffer
             let grad_data = grad.to_vec();
+            let grad_buffer =
+                param
+                    .context
+                    .device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: Some("Gradient Buffer"),
+                        contents: bytemuck::cast_slice(&grad_data),
+                        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+                    });
 
-            // Update: param -= lr * grad
-            let updated_data: Vec<f32> = param_data.iter()
-                .zip(grad_data.iter())
-                .map(|(p, g)| p - self.lr * g)
-                .collect();
+            // Create uniform buffer for optimizer params
+            #[repr(C)]
+            #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+            struct OptimizerParams {
+                size: u32,
+                lr: f32,
+                momentum: f32,
+                beta1: f32,
+                beta2: f32,
+                epsilon: f32,
+                t: u32,
+                _padding: u32,
+            }
 
-            // Update data in-place (preserves gradient tracking)
-            param.update_data(&updated_data);
+            let params = OptimizerParams {
+                size: size as u32,
+                lr: self.lr,
+                momentum: 0.0,
+                beta1: 0.0,
+                beta2: 0.0,
+                epsilon: 0.0,
+                t: 0,
+                _padding: 0,
+            };
+
+            let param_buffer =
+                param
+                    .context
+                    .device
+                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: Some("Optimizer Params"),
+                        contents: bytemuck::cast_slice(&[params]),
+                        usage: wgpu::BufferUsages::UNIFORM,
+                    });
+
+            // Create bind group
+            let bind_group = param
+                .context
+                .device
+                .create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: Some("SGD Bind Group"),
+                    layout: &param.context.pipelines.optimizer_layout,
+                    entries: &[
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: param.buffer.as_entire_binding(),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 1,
+                            resource: grad_buffer.as_entire_binding(),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 2,
+                            resource: param_buffer.as_entire_binding(),
+                        },
+                    ],
+                });
+
+            // Execute GPU kernel
+            let mut encoder =
+                param
+                    .context
+                    .device
+                    .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                        label: Some("SGD Encoder"),
+                    });
+
+            {
+                let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                    label: Some("SGD Pass"),
+                    timestamp_writes: None,
+                });
+
+                compute_pass.set_pipeline(&param.context.pipelines.sgd_pipeline);
+                compute_pass.set_bind_group(0, &bind_group, &[]);
+
+                // Dispatch workgroups: (size + 255) / 256 workgroups of 256 threads each
+                let workgroups = (size as u32 + 255) / 256;
+                compute_pass.dispatch_workgroups(workgroups, 1, 1);
+            }
+
+            param.context.queue.submit([encoder.finish()]);
+
+            // Note: param.buffer is now updated in-place on GPU, no need to read back!
         }
     }
 
@@ -126,7 +214,9 @@ impl Adam {
             let param_id = Arc::as_ptr(&param.shared_data) as usize;
 
             let mut state_map = self.state.lock().unwrap();
-            let state = state_map.entry(param_id).or_insert_with(|| AdamState::new(size));
+            let state = state_map
+                .entry(param_id)
+                .or_insert_with(|| AdamState::new(size));
 
             // Increment time step
             state.t += 1;
@@ -139,7 +229,8 @@ impl Adam {
 
             // Update biased second moment estimate
             for i in 0..size {
-                state.v[i] = self.beta2 * state.v[i] + (1.0 - self.beta2) * grad_data[i] * grad_data[i];
+                state.v[i] =
+                    self.beta2 * state.v[i] + (1.0 - self.beta2) * grad_data[i] * grad_data[i];
             }
 
             // Compute bias-corrected first moment estimate
@@ -149,7 +240,8 @@ impl Adam {
             let v_hat_correction = 1.0 / (1.0 - self.beta2.powf(t));
 
             // Update parameters
-            let updated_data: Vec<f32> = param_data.iter()
+            let updated_data: Vec<f32> = param_data
+                .iter()
                 .zip(state.m.iter())
                 .zip(state.v.iter())
                 .map(|((p, m), v)| {

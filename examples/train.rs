@@ -1,4 +1,4 @@
-use toygrad::{GpuContext, Tensor, SGD};
+use toygrad::{GpuContext, SGD, Tensor};
 
 fn main() {
     println!("=== Training a Simple Neural Network ===\n");
@@ -20,7 +20,11 @@ fn main() {
     let optimizer = SGD::new(0.01); // learning rate = 0.01
 
     println!("Target function: y = 2*x + 3");
-    println!("Initial parameters: w = {:?}, b = {:?}\n", w.to_vec(), b.to_vec());
+    println!(
+        "Initial parameters: w = {:?}, b = {:?}\n",
+        w.to_vec(),
+        b.to_vec()
+    );
 
     // Training loop
     for epoch in 0..50 {
@@ -52,14 +56,22 @@ fn main() {
         }
 
         if epoch % 10 == 0 {
-            println!("Epoch {}: Loss = {:.6}, w = {:?}, b = {:?}",
-                epoch, total_loss / x_data.len() as f32,
-                w.to_vec(), b.to_vec());
+            println!(
+                "Epoch {}: Loss = {:.6}, w = {:?}, b = {:?}",
+                epoch,
+                total_loss / x_data.len() as f32,
+                w.to_vec(),
+                b.to_vec()
+            );
         }
     }
 
     println!("\n=== Training Complete ===");
-    println!("Final parameters: w = {:?}, b = {:?}", w.to_vec(), b.to_vec());
+    println!(
+        "Final parameters: w = {:?}, b = {:?}",
+        w.to_vec(),
+        b.to_vec()
+    );
     println!("Expected: w = [2.0], b = [3.0]");
 
     // Test the trained model
@@ -69,7 +81,11 @@ fn main() {
         let x = Tensor::new(&[x_val], vec![1, 1], ctx.clone());
         let pred = w.matmul(&x).add(&b);
         let expected = 2.0 * x_val + 3.0;
-        println!("Input: {:.1}, Predicted: {:.3}, Expected: {:.1}",
-            x_val, pred.to_vec()[0], expected);
+        println!(
+            "Input: {:.1}, Predicted: {:.3}, Expected: {:.1}",
+            x_val,
+            pred.to_vec()[0],
+            expected
+        );
     }
 }

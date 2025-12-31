@@ -15,8 +15,8 @@ fn main() {
 
     // Layer 1: (2, 4) weights + (4,) bias
     let w1_data = vec![
-        0.5, -0.3, 0.2, 0.7,   // weights for input 1
-        -0.4, 0.6, -0.1, 0.3,  // weights for input 2
+        0.5, -0.3, 0.2, 0.7, // weights for input 1
+        -0.4, 0.6, -0.1, 0.3, // weights for input 2
     ];
     let w1 = Tensor::new(&w1_data, vec![2, 4], ctx.clone());
     let b1 = Tensor::new(&[0.1, -0.2, 0.3, -0.1], vec![1, 4], ctx.clone());
@@ -29,10 +29,10 @@ fn main() {
     // XOR: [0, 0] -> 0, [0, 1] -> 1, [1, 0] -> 1, [1, 1] -> 0
     let x = Tensor::new(
         &[
-            0.0, 0.0,  // sample 1
-            0.0, 1.0,  // sample 2
-            1.0, 0.0,  // sample 3
-            1.0, 1.0,  // sample 4
+            0.0, 0.0, // sample 1
+            0.0, 1.0, // sample 2
+            1.0, 0.0, // sample 3
+            1.0, 1.0, // sample 4
         ],
         vec![4, 2],
         ctx.clone(),

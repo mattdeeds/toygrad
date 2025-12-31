@@ -37,7 +37,7 @@ impl Tensor {
         for (pred, targ) in pred_data.iter().zip(target_data.iter()) {
             // Clamp predictions to avoid log(0)
             let p = pred.max(epsilon).min(1.0 - epsilon);
-            loss_sum += -( targ * p.ln() + (1.0 - targ) * (1.0 - p).ln());
+            loss_sum += -(targ * p.ln() + (1.0 - targ) * (1.0 - p).ln());
         }
 
         let mean_loss = loss_sum / pred_data.len() as f32;

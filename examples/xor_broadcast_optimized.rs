@@ -3,7 +3,7 @@ use toygrad::{GpuContext, SGD, Tensor};
 
 fn main() {
     env_logger::init();
-    println!("=== XOR with Broadcasting (Batch Training) ===\n");
+    println!("=== XOR Broadcast - Optimized (No Sync Points) ===\n");
 
     let ctx = GpuContext::new();
 
@@ -37,57 +37,41 @@ fn main() {
 
     let mut b2 = Tensor::new(&[0.0], vec![1, 1], ctx.clone()).with_grad();
 
-    // XOR dataset - ALL 4 samples in a batch!
+    // XOR dataset - ALL 4 samples in a batch
     let x = Tensor::new(
-        &[
-            0.0, 0.0, // [0, 0] -> 0
-            0.0, 1.0, // [0, 1] -> 1
-            1.0, 0.0, // [1, 0] -> 1
-            1.0, 1.0, // [1, 1] -> 0
-        ],
+        &[0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0],
         vec![4, 2],
         ctx.clone(),
     );
 
     let y_true = Tensor::new(&[0.0, 1.0, 1.0, 0.0], vec![4, 1], ctx.clone());
 
-    println!("Using broadcasting for batch training!");
-    println!("  Training with ALL 4 samples simultaneously\n");
-
-    // Start timing
-    let start_time = Instant::now();
+    println!("Training WITHOUT print statements (no GPU-to-CPU sync)");
+    println!("This eliminates synchronization overhead\n");
 
     let optimizer = SGD::new(0.5);
     let epochs = 2000;
 
-    for epoch in 0..epochs {
+    // Start timing
+    let start_time = Instant::now();
+
+    for _epoch in 0..epochs {
         // Zero gradients
         w1.zero_grad();
         b1.zero_grad();
         w2.zero_grad();
         b2.zero_grad();
 
-        // Forward pass - process entire batch at once!
-        // Broadcasting automatically handles bias addition
-        let z1 = x.matmul(&w1).add(&b1); // (4,2) @ (2,4) + (1,4) -> (4,4)
+        // Forward pass
+        let z1 = x.matmul(&w1).add(&b1);
         let h1 = z1.relu();
-        let z2 = h1.matmul(&w2).add(&b2); // (4,4) @ (4,1) + (1,1) -> (4,1)
+        let z2 = h1.matmul(&w2).add(&b2);
         let y_pred = z2.sigmoid();
 
         // Compute loss
         let loss = y_pred.mse_loss(&y_true);
 
-        // Print progress
-        if epoch % 200 == 0 || epoch == epochs - 1 {
-            let loss_val = loss.to_vec()[0];
-            let predictions = y_pred.to_vec();
-            println!("Epoch {:4}: Loss = {:.6}", epoch, loss_val);
-            println!(
-                "  Predictions: [{:.3}, {:.3}, {:.3}, {:.3}]",
-                predictions[0], predictions[1], predictions[2], predictions[3]
-            );
-            println!("  Targets:     [0.000, 1.000, 1.000, 0.000]");
-        }
+        // NO PRINTING HERE - this avoids to_vec() sync!
 
         // Backward pass
         loss.backward();
@@ -99,17 +83,15 @@ fn main() {
         optimizer.step(&mut b2);
     }
 
-    // End timing
+    // End timing (before any GPU sync)
     let training_time = start_time.elapsed();
 
     println!("\n=== Training Complete ===");
-    println!(
-        "Training time: {:.4} seconds\n",
-        training_time.as_secs_f64()
-    );
+    println!("Training time: {:.4} seconds", training_time.as_secs_f64());
+    println!("(No GPU sync during training loop)\n");
 
-    // Final evaluation
-    println!("\nFinal Test:");
+    // NOW sync to get final results
+    println!("Final Test:");
     let z1 = x.matmul(&w1).add(&b1);
     let h1 = z1.relu();
     let z2 = h1.matmul(&w2).add(&b2);
@@ -146,7 +128,4 @@ fn main() {
         correct,
         (correct as f32 / 4.0) * 100.0
     );
-
-    println!("\nNote: With broadcasting, we can process all samples in a single batch!");
-    println!("This is much more efficient than processing samples one-by-one.");
 }

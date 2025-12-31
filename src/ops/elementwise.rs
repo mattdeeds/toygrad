@@ -143,8 +143,8 @@ fn elementwise_binary_op(a: &Tensor, b: &Tensor, op_type: OpType) -> Tensor {
 
 /// Execute a broadcast element-wise binary operation on the GPU
 fn broadcast_binary_op(a: &Tensor, b: &Tensor, op_type: OpType) -> Tensor {
-    let broadcast_info = BroadcastInfo::compute(&a.shape, &b.shape)
-        .expect("Shapes are not broadcast-compatible");
+    let broadcast_info =
+        BroadcastInfo::compute(&a.shape, &b.shape).expect("Shapes are not broadcast-compatible");
 
     let context = a.context.clone();
     let output_size: usize = broadcast_info.output_shape.iter().product();
@@ -281,7 +281,10 @@ impl Tensor {
                 elementwise_binary_op(self, other, OpType::Add)
             }
         } else {
-            panic!("Shapes {:?} and {:?} are not broadcast-compatible", self.shape, other.shape);
+            panic!(
+                "Shapes {:?} and {:?} are not broadcast-compatible",
+                self.shape, other.shape
+            );
         };
 
         if self.requires_grad || other.requires_grad {
@@ -315,7 +318,8 @@ impl Tensor {
 
                     if a_requires_grad {
                         // Reduce gradient if broadcasting occurred
-                        let grad_a = reduce_gradient_dims(grad_clone.clone(), &output_shape, &reduce_dims_a);
+                        let grad_a =
+                            reduce_gradient_dims(grad_clone.clone(), &output_shape, &reduce_dims_a);
 
                         let mut a_grad = a_shared.grad.lock().unwrap();
                         if let Some(ref mut existing) = *a_grad {
@@ -334,7 +338,8 @@ impl Tensor {
                     }
                     if b_requires_grad {
                         // Reduce gradient if broadcasting occurred
-                        let grad_b = reduce_gradient_dims(grad_clone, &output_shape, &reduce_dims_b);
+                        let grad_b =
+                            reduce_gradient_dims(grad_clone, &output_shape, &reduce_dims_b);
 
                         let mut b_grad = b_shared.grad.lock().unwrap();
                         if let Some(ref mut existing) = *b_grad {
@@ -443,7 +448,8 @@ impl Tensor {
                     drop(grad_lock);
 
                     if a_requires_grad {
-                        let grad_a: Vec<f32> = grad_clone.iter()
+                        let grad_a: Vec<f32> = grad_clone
+                            .iter()
                             .zip(b_data.iter())
                             .map(|(g, b)| g * b)
                             .collect();
@@ -463,7 +469,8 @@ impl Tensor {
                         }
                     }
                     if b_requires_grad {
-                        let grad_b: Vec<f32> = grad_clone.iter()
+                        let grad_b: Vec<f32> = grad_clone
+                            .iter()
                             .zip(a_data.iter())
                             .map(|(g, a)| g * a)
                             .collect();
@@ -516,7 +523,8 @@ impl Tensor {
                     drop(grad_lock);
 
                     if a_requires_grad {
-                        let grad_a: Vec<f32> = grad_clone.iter()
+                        let grad_a: Vec<f32> = grad_clone
+                            .iter()
                             .zip(b_data.iter())
                             .map(|(g, b)| g / b)
                             .collect();
@@ -536,7 +544,8 @@ impl Tensor {
                         }
                     }
                     if b_requires_grad {
-                        let grad_b: Vec<f32> = grad_clone.iter()
+                        let grad_b: Vec<f32> = grad_clone
+                            .iter()
                             .zip(a_data.iter())
                             .zip(b_data.iter())
                             .map(|((g, a), b)| -g * a / (b * b))

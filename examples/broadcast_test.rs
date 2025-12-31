@@ -10,9 +10,7 @@ fn main() {
     println!("Test 1: Broadcasting bias addition");
     let x = Tensor::new(
         &[
-            1.0, 2.0, 3.0, 4.0,
-            5.0, 6.0, 7.0, 8.0,
-            9.0, 10.0, 11.0, 12.0,
+            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
         ],
         vec![3, 4],
         ctx.clone(),
@@ -60,9 +58,7 @@ fn main() {
     let col_vec = Tensor::new(&[0.5, 1.0, 1.5], vec![3, 1], ctx.clone()).with_grad();
     let mat = Tensor::new(
         &[
-            1.0, 2.0, 3.0, 4.0,
-            5.0, 6.0, 7.0, 8.0,
-            9.0, 10.0, 11.0, 12.0,
+            1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
         ],
         vec![3, 4],
         ctx.clone(),
@@ -83,7 +79,10 @@ fn main() {
 
     let loss2 = result2.sum();
     loss2.backward();
-    println!("  col_vec gradient: {:?}", col_vec.get_grad().unwrap().to_vec());
+    println!(
+        "  col_vec gradient: {:?}",
+        col_vec.get_grad().unwrap().to_vec()
+    );
     println!("  Expected col_vec grad: [4.0, 4.0, 4.0] (sum over 4 columns)");
 
     println!("\nTest 3: Scalar broadcast");

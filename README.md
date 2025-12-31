@@ -4,6 +4,8 @@ A minimal GPU-accelerated tensor library with automatic differentiation, built w
 
 Trying to be readable and hackable.
 
+Currently ~10x slower than PyTorch.
+
 ## Features
 
 - **GPU Acceleration**: All tensor operations run on the GPU via WebGPU compute shaders

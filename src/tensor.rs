@@ -96,12 +96,12 @@ impl Tensor {
         });
 
         // Copy from tensor buffer to staging buffer
-        let mut encoder = self
-            .context
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Copy Encoder"),
-            });
+        let mut encoder =
+            self.context
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Copy Encoder"),
+                });
 
         encoder.copy_buffer_to_buffer(
             &self.buffer,
@@ -116,7 +116,10 @@ impl Tensor {
         // Map and read the buffer
         let buffer_slice = staging_buffer.slice(..);
         buffer_slice.map_async(wgpu::MapMode::Read, |_| {});
-        self.context.device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
+        self.context
+            .device
+            .poll(wgpu::PollType::wait_indefinitely())
+            .unwrap();
 
         let data = buffer_slice.get_mapped_range();
         let result: Vec<f32> = bytemuck::cast_slice(&data).to_vec();
@@ -154,7 +157,8 @@ impl Tensor {
 
         if let Some(existing_grad) = grad_lock.as_mut() {
             // Add to existing gradient
-            let new_data: Vec<f32> = existing_grad.iter()
+            let new_data: Vec<f32> = existing_grad
+                .iter()
                 .zip(grad_data.iter())
                 .map(|(a, b)| a + b)
                 .collect();
@@ -168,9 +172,9 @@ impl Tensor {
     /// Get gradient as a cloned tensor
     pub fn get_grad(&self) -> Option<Tensor> {
         let grad_lock = self.shared_data.grad.lock().unwrap();
-        grad_lock.as_ref().map(|data| {
-            Tensor::new(data, self.shape.clone(), self.context.clone())
-        })
+        grad_lock
+            .as_ref()
+            .map(|data| Tensor::new(data, self.shape.clone(), self.context.clone()))
     }
 
     /// Zero out the gradient
@@ -182,7 +186,11 @@ impl Tensor {
     /// Run backward pass from this tensor (typically a loss scalar)
     /// This tensor should be a scalar (shape [1])
     pub fn backward(&self) {
-        assert_eq!(self.shape, vec![1], "backward() should be called on a scalar");
+        assert_eq!(
+            self.shape,
+            vec![1],
+            "backward() should be called on a scalar"
+        );
 
         // Initialize gradient to 1.0 for the output
         self.accumulate_grad(&[1.0]);
@@ -195,10 +203,15 @@ impl Tensor {
 
     /// Update tensor data in-place (preserves shared_data and gradient tracking)
     pub fn update_data(&mut self, new_data: &[f32]) {
-        assert_eq!(new_data.len(), self.size(), "Data length must match tensor size");
+        assert_eq!(
+            new_data.len(),
+            self.size(),
+            "Data length must match tensor size"
+        );
 
         // Create new buffer with updated data
-        self.buffer = self.context
+        self.buffer = self
+            .context
             .device
             .create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("Updated Tensor Buffer"),

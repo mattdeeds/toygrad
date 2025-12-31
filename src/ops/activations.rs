@@ -80,7 +80,8 @@ impl Tensor {
                 let grad_lock = result_shared.grad.lock().unwrap();
                 if let Some(ref grad_data) = *grad_lock {
                     // ReLU gradient: grad * (input > 0)
-                    let grad_input: Vec<f32> = grad_data.iter()
+                    let grad_input: Vec<f32> = grad_data
+                        .iter()
                         .zip(input_data.iter())
                         .map(|(g, x)| if *x > 0.0 { *g } else { 0.0 })
                         .collect();
@@ -125,7 +126,8 @@ impl Tensor {
                 let grad_lock = result_shared.grad.lock().unwrap();
                 if let Some(ref grad_data) = *grad_lock {
                     // Sigmoid gradient: grad * output * (1 - output)
-                    let grad_input: Vec<f32> = grad_data.iter()
+                    let grad_input: Vec<f32> = grad_data
+                        .iter()
                         .zip(output_data.iter())
                         .map(|(g, s)| g * s * (1.0 - s))
                         .collect();
@@ -170,7 +172,8 @@ impl Tensor {
                 let grad_lock = result_shared.grad.lock().unwrap();
                 if let Some(ref grad_data) = *grad_lock {
                     // Tanh gradient: grad * (1 - output^2)
-                    let grad_input: Vec<f32> = grad_data.iter()
+                    let grad_input: Vec<f32> = grad_data
+                        .iter()
                         .zip(output_data.iter())
                         .map(|(g, t)| g * (1.0 - t * t))
                         .collect();

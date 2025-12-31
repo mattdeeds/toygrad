@@ -132,7 +132,11 @@ impl Tensor {
             let backward_fn = Box::new(move || {
                 let grad_lock = result_shared.grad.lock().unwrap();
                 if let Some(ref grad_data) = *grad_lock {
-                    let grad_output = Tensor::new(grad_data, vec![m as usize, n as usize], a_clone.context.clone());
+                    let grad_output = Tensor::new(
+                        grad_data,
+                        vec![m as usize, n as usize],
+                        a_clone.context.clone(),
+                    );
                     drop(grad_lock);
 
                     // grad_A = grad_output @ B^T

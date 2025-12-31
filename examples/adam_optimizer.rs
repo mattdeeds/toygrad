@@ -1,4 +1,4 @@
-use toygrad::{GpuContext, Tensor, Adam};
+use toygrad::{Adam, GpuContext, Tensor};
 
 fn main() {
     env_logger::init();
@@ -14,8 +14,14 @@ fn main() {
     let scale1 = (2.0_f32 / 2.0).sqrt();
     let mut w1 = Tensor::new(
         &[
-            0.5 * scale1, -0.3 * scale1, 0.2 * scale1, 0.7 * scale1,
-            -0.4 * scale1, 0.6 * scale1, -0.1 * scale1, 0.3 * scale1,
+            0.5 * scale1,
+            -0.3 * scale1,
+            0.2 * scale1,
+            0.7 * scale1,
+            -0.4 * scale1,
+            0.6 * scale1,
+            -0.1 * scale1,
+            0.3 * scale1,
         ],
         vec![2, 4],
         ctx.clone(),
@@ -37,10 +43,10 @@ fn main() {
 
     // XOR dataset
     let x_data = [
-        [0.0, 0.0],  // -> 0
-        [0.0, 1.0],  // -> 1
-        [1.0, 0.0],  // -> 1
-        [1.0, 1.0],  // -> 0
+        [0.0, 0.0], // -> 0
+        [0.0, 1.0], // -> 1
+        [1.0, 0.0], // -> 1
+        [1.0, 1.0], // -> 0
     ];
     let y_data = [0.0, 1.0, 1.0, 0.0];
 
@@ -108,8 +114,10 @@ fn main() {
                 let y_pred = z2.sigmoid();
                 preds.push(y_pred.to_vec()[0]);
             }
-            println!("  Predictions: [{:.3}, {:.3}, {:.3}, {:.3}]",
-                     preds[0], preds[1], preds[2], preds[3]);
+            println!(
+                "  Predictions: [{:.3}, {:.3}, {:.3}, {:.3}]",
+                preds[0], preds[1], preds[2], preds[3]
+            );
             println!("  Targets:     [0.000, 1.000, 1.000, 0.000]");
         }
     }
@@ -130,16 +138,29 @@ fn main() {
         let target_val = y_data[i];
         let predicted_class = if pred_val > 0.5 { 1.0 } else { 0.0 };
 
-        println!("Input [{:.0}, {:.0}] -> Prediction: {:.4} (Target: {:.0}) {}",
-                 x_sample[0], x_sample[1], pred_val, target_val,
-                 if predicted_class == target_val { "✓" } else { "✗" });
+        println!(
+            "Input [{:.0}, {:.0}] -> Prediction: {:.4} (Target: {:.0}) {}",
+            x_sample[0],
+            x_sample[1],
+            pred_val,
+            target_val,
+            if predicted_class == target_val {
+                "✓"
+            } else {
+                "✗"
+            }
+        );
 
         if predicted_class == target_val {
             correct += 1;
         }
     }
 
-    println!("\nAccuracy: {}/4 ({:.0}%)", correct, (correct as f32 / 4.0) * 100.0);
+    println!(
+        "\nAccuracy: {}/4 ({:.0}%)",
+        correct,
+        (correct as f32 / 4.0) * 100.0
+    );
 
     println!("\nNote: Adam typically converges faster than SGD and is less sensitive");
     println!("to learning rate choice. Try comparing this with simple_sgd example!");

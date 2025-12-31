@@ -1,4 +1,4 @@
-use toygrad::{GpuContext, Tensor, SGD};
+use toygrad::{GpuContext, SGD, Tensor};
 
 fn main() {
     println!("=== Simple SGD Test ===\n");
@@ -24,7 +24,12 @@ fn main() {
         let squared = diff.mul(&diff);
         let loss = squared.mean();
 
-        println!("Iteration {}: x = {:?}, loss = {:?}", i, x.to_vec(), loss.to_vec());
+        println!(
+            "Iteration {}: x = {:?}, loss = {:?}",
+            i,
+            x.to_vec(),
+            loss.to_vec()
+        );
 
         // Backward
         loss.backward();

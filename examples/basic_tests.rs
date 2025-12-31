@@ -1,6 +1,7 @@
 use toygrad::{GpuContext, Tensor};
 
 fn main() {
+    env_logger::init();
     println!("Initializing GPU context...");
     let ctx = GpuContext::new();
     println!("GPU context created successfully!");

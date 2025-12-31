@@ -299,6 +299,12 @@ pub struct GpuContext {
     pub pipelines: Arc<PipelineCache>,
 }
 
+impl Default for GpuContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GpuContext {
     /// Initialize a new GPU context with default settings
     pub fn new() -> Self {

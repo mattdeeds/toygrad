@@ -126,8 +126,8 @@ impl Tensor {
             let result_shared = std::sync::Arc::clone(&result.shared_data);
 
             // Clone the nodes for recursive backward calls
-            let a_node = std::sync::Arc::clone(&self.node);
-            let b_node = std::sync::Arc::clone(&other.node);
+            let a_node = std::rc::Rc::clone(&self.node);
+            let b_node = std::rc::Rc::clone(&other.node);
 
             let backward_fn = Box::new(move || {
                 let grad_lock = result_shared.grad.lock().unwrap();

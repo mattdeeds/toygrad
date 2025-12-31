@@ -4,8 +4,7 @@
 /// 1. If tensors have different number of dimensions, prepend 1s to the smaller shape
 /// 2. For each dimension, sizes must either match or one must be 1
 /// 3. Output shape is the maximum of input shapes in each dimension
-
-/// Information about how to broadcast two tensors
+///    Information about how to broadcast two tensors
 #[derive(Debug, Clone)]
 pub struct BroadcastInfo {
     /// Output shape after broadcasting

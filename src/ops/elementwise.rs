@@ -306,8 +306,8 @@ impl Tensor {
             let result_shared = Arc::clone(&result.shared_data);
 
             // Clone the nodes for recursive backward calls
-            let a_node = Arc::clone(&self.node);
-            let b_node = Arc::clone(&other.node);
+            let a_node = std::rc::Rc::clone(&self.node);
+            let b_node = std::rc::Rc::clone(&other.node);
             let output_shape = result.shape.clone();
 
             let backward_fn = Box::new(move || {
@@ -376,8 +376,8 @@ impl Tensor {
             let b_shared = Arc::clone(&other.shared_data);
             let result_shared = Arc::clone(&result.shared_data);
 
-            let a_node = Arc::clone(&self.node);
-            let b_node = Arc::clone(&other.node);
+            let a_node = std::rc::Rc::clone(&self.node);
+            let b_node = std::rc::Rc::clone(&other.node);
 
             let backward_fn = Box::new(move || {
                 let grad_lock = result_shared.grad.lock().unwrap();
@@ -438,8 +438,8 @@ impl Tensor {
             let result_shared = Arc::clone(&result.shared_data);
 
             // Clone the nodes for recursive backward calls
-            let a_node = Arc::clone(&self.node);
-            let b_node = Arc::clone(&other.node);
+            let a_node = std::rc::Rc::clone(&self.node);
+            let b_node = std::rc::Rc::clone(&other.node);
 
             let backward_fn = Box::new(move || {
                 let grad_lock = result_shared.grad.lock().unwrap();
@@ -513,8 +513,8 @@ impl Tensor {
             let result_shared = Arc::clone(&result.shared_data);
 
             // Clone the nodes for recursive backward calls
-            let a_node = Arc::clone(&self.node);
-            let b_node = Arc::clone(&other.node);
+            let a_node = std::rc::Rc::clone(&self.node);
+            let b_node = std::rc::Rc::clone(&other.node);
 
             let backward_fn = Box::new(move || {
                 let grad_lock = result_shared.grad.lock().unwrap();
@@ -640,7 +640,7 @@ impl Tensor {
             let result_shared = Arc::clone(&result.shared_data);
 
             // Clone the node for recursive backward call
-            let input_node = Arc::clone(&self.node);
+            let input_node = std::rc::Rc::clone(&self.node);
 
             let backward_fn = Box::new(move || {
                 let grad_lock = result_shared.grad.lock().unwrap();

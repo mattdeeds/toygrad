@@ -111,7 +111,7 @@ impl SGD {
                 compute_pass.set_bind_group(0, &bind_group, &[]);
 
                 // Dispatch workgroups: (size + 255) / 256 workgroups of 256 threads each
-                let workgroups = (size as u32 + 255) / 256;
+                let workgroups = (size as u32).div_ceil(256);
                 compute_pass.dispatch_workgroups(workgroups, 1, 1);
             }
 
@@ -223,14 +223,13 @@ impl Adam {
             let t = state.t as f32;
 
             // Update biased first moment estimate
-            for i in 0..size {
-                state.m[i] = self.beta1 * state.m[i] + (1.0 - self.beta1) * grad_data[i];
+            for (m, &grad) in state.m.iter_mut().zip(&grad_data).take(size) {
+                *m = self.beta1 * *m + (1.0 - self.beta1) * grad;
             }
 
             // Update biased second moment estimate
-            for i in 0..size {
-                state.v[i] =
-                    self.beta2 * state.v[i] + (1.0 - self.beta2) * grad_data[i] * grad_data[i];
+            for (v, &grad) in state.v.iter_mut().zip(&grad_data).take(size) {
+                *v = self.beta2 * *v + (1.0 - self.beta2) * grad * grad;
             }
 
             // Compute bias-corrected first moment estimate

@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use wgpu::util::DeviceExt;
 
@@ -29,7 +30,7 @@ pub struct Tensor {
     /// Shared gradient storage
     pub(crate) shared_data: Arc<SharedTensorData>,
     /// Computational graph node for autodiff
-    pub node: Arc<GraphNode>,
+    pub node: Rc<GraphNode>,
     /// Whether this tensor requires gradient computation
     pub requires_grad: bool,
 }

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 /// Represents a node in the computational graph.
 /// Each operation creates a new node that tracks its inputs and how to compute gradients.
@@ -9,13 +9,13 @@ pub struct GraphNode {
 
 impl GraphNode {
     /// Create a leaf node (input/parameter with no parents)
-    pub fn leaf() -> Arc<Self> {
-        Arc::new(Self { backward_fn: None })
+    pub fn leaf() -> Rc<Self> {
+        Rc::new(Self { backward_fn: None })
     }
 
     /// Create a node for an operation with a backward function
-    pub fn new(backward_fn: Box<dyn Fn()>) -> Arc<Self> {
-        Arc::new(Self {
+    pub fn new(backward_fn: Box<dyn Fn()>) -> Rc<Self> {
+        Rc::new(Self {
             backward_fn: Some(backward_fn),
         })
     }

@@ -2,7 +2,7 @@ use std::time::Instant;
 use toygrad::{GpuContext, SGD, Tensor};
 
 fn main() {
-    env_logger::init();
+    // env_logger::init();
     println!("=== XOR with Broadcasting (Batch Training) ===\n");
 
     let ctx = GpuContext::new();
@@ -37,7 +37,7 @@ fn main() {
 
     let mut b2 = Tensor::new(&[0.0], vec![1, 1], ctx.clone()).with_grad();
 
-    // XOR dataset - ALL 4 samples in a batch!
+    // XOR dataset
     let x = Tensor::new(
         &[
             0.0, 0.0, // [0, 0] -> 0
